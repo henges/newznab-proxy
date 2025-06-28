@@ -8,11 +8,39 @@ import (
 )
 
 type Config struct {
-	Backends []struct {
-		Name    string `yaml:"name"`
-		BaseURL string `yaml:"baseUrl"`
-		APIKey  string `yaml:"apiKey"`
-	} `yaml:"backends"`
+	Web      WebConfig       `yaml:"web"`
+	Storage  StorageConfig   `yaml:"storage"`
+	Backends []BackendConfig `yaml:"backends"`
+}
+
+type WebConfig struct {
+	ExternalHost string `yaml:"externalHost"`
+	ListenAddr   string `yaml:"listenAddr"`
+	Port         uint16 `yaml:"port"`
+	TLS          bool   `yaml:"tls"`
+}
+
+type StorageConfig struct {
+	NZBDir string `yaml:"nzbDir"`
+	DBPath string `yaml:"dbPath"`
+}
+
+type BackendConfig struct {
+	Name    string     `yaml:"name"`
+	BaseURL string     `yaml:"baseUrl"`
+	APIKey  string     `yaml:"apiKey"`
+	RSS     *RSSConfig `yaml:"rss,omitempty"`
+}
+
+type RSSConfig struct {
+	RSSPath        string            `yaml:"rssPath"`
+	RSSQueryParams map[string]string `yaml:"rssQueryParams"`
+	Feeds          []RSSFeed         `yaml:"feeds"`
+}
+
+type RSSFeed struct {
+	Name        string            `yaml:"name"`
+	QueryParams map[string]string `yaml:"queryParams"`
 }
 
 const configPathEnvVar = "NEWZNAB_PROXY_CONFIG_PATH"

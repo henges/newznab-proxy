@@ -56,6 +56,22 @@ func FeedItemFromNewznab(i newznab.Item, indexer string, source FeedItemSource) 
 	}
 }
 
+func (fi FeedItem) RewrittenNZBLink(host string, tls bool) string {
+
+	proto := "http"
+	if tls {
+		proto = "https"
+	}
+	return fmt.Sprintf("%s://%s/getnzb/%s", proto, host, fi.ID)
+}
+
+func (fi FeedItem) ToRewrittenNewznabItem(host string, tls bool) newznab.Item {
+
+	ret := fi.ToNewznabItem()
+	ret.Enclosure.URL = fi.RewrittenNZBLink(host, tls)
+	return ret
+}
+
 func (fi FeedItem) ToNewznabItem() newznab.Item {
 
 	return newznab.Item{

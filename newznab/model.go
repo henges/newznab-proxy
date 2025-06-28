@@ -26,6 +26,18 @@ func NewRssFeed(v RssChannel) RssFeed {
 	}
 }
 
+func NewRssFeedFromItems(offset, total int, v []Item) RssFeed {
+
+	ch := RssChannel{
+		Response: NewznabResponse{
+			Offset: offset,
+			Total:  total,
+		},
+		Items: v,
+	}
+	return NewRssFeed(ch)
+}
+
 type RssChannel struct {
 	AtomLink    AtomLink      `xml:"http://www.w3.org/2005/Atom atom:link"`
 	Title       string        `xml:"title"`

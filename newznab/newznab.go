@@ -1,13 +1,14 @@
 package newznab
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"strings"
 )
 
 type ServerImplementation interface {
-	Search(params SearchParams) (*RssFeed, error)
+	Search(ctx context.Context, params SearchParams) (*RssFeed, error)
 }
 
 type ServerError struct {

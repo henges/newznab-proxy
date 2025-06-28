@@ -13,3 +13,5 @@ ORDER BY f.rank;
 
 -- name: GetFeedItemMetas :many
 SELECT * FROM feed_item_meta WHERE feed_item_id IN (sqlc.slice(ids));
+
+-- name:

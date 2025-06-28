@@ -10,7 +10,7 @@ import (
 
 type dummyServerImpl struct{}
 
-func (d dummyServerImpl) Search(params newznab.SearchParams) (*newznab.RssFeed, error) {
+func (d dummyServerImpl) Search(ctx context.Context, params newznab.SearchParams) (*newznab.RssFeed, error) {
 
 	ch := newznab.RssChannel{
 		AtomLink: newznab.AtomLink{

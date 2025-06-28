@@ -84,3 +84,27 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (*RssFeed, err
 	}
 	return &ret, nil
 }
+
+func (c *Client) PollRSS(ctx context.Context, rssPath string, params map[string]string) (*RssFeed, error) {
+
+	qp := make(url.Values, len(params))
+	for k, v := range params {
+		qp.Set(k, v)
+	}
+	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+"/"+rssPath+"?"+qp.Encode(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", c.userAgent)
+	resp, err := c.cl.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var ret RssFeed
+	err = xmlutil.NewDecoder(resp.Body).Decode(&ret)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
+}
