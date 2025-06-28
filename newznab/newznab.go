@@ -20,15 +20,15 @@ func (s ServerError) Error() string {
 }
 
 type SearchParams struct {
-	APIKey   string `schema:"apikey"`
+	//APIKey   string `schema:"apikey"`
 	Query    string `schema:"q"`
-	Group    string `schema:"group"`
-	Limit    int    `schema:"limit"`
-	Category string `schema:"cat"`
-	Output   string `schema:"o"`
-	Attrs    string `schema:"attrs"`
-	Extended bool   `schema:"extended"`
-	Del      bool   `schema:"del"`
-	MaxAge   int    `schema:"maxage"`
-	Offset   int    `schema:"offset"`
+	Group    string `schema:"group,omitempty"`
+	Limit    int    `schema:"limit,omitempty"`
+	Category string `schema:"cat,omitempty"`
+	Output   string `schema:"o,omitempty"`
+	Attrs    string `schema:"attrs,omitempty"`
+	Extended bool   `schema:"extended,omitempty"`
+	Del      bool   `schema:"del,omitempty"`
+	MaxAge   int    `schema:"maxage,omitempty"`
+	Offset   int    `schema:"offset,omitempty"`
 }

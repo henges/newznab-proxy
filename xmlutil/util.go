@@ -2,6 +2,7 @@ package xmlutil
 
 import (
 	"encoding/xml"
+	"io"
 
 	extxml "github.com/nbio/xml"
 )
@@ -15,6 +16,11 @@ type MarshalStartElement = xml.StartElement
 func Unmarshal(data []byte, v any) error {
 
 	return extxml.Unmarshal(data, v)
+}
+
+func NewDecoder(r io.Reader) *extxml.Decoder {
+
+	return extxml.NewDecoder(r)
 }
 
 const HeaderNoNewline = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"

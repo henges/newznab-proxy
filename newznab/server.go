@@ -108,6 +108,7 @@ var decoder = schema.NewDecoder()
 
 func (s *Server) search(rw http.ResponseWriter, r *http.Request) {
 
+	decoder.IgnoreUnknownKeys(true)
 	var p SearchParams
 	err := decoder.Decode(&p, r.Form)
 	if err != nil {

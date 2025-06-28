@@ -16,6 +16,16 @@ type RssFeed struct {
 	Channel      RssChannel `xml:"channel"`
 }
 
+func NewRssFeed(v RssChannel) RssFeed {
+	// <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:newznab="http://www.newznab.com/DTD/2010/feeds/attributes/">
+	return RssFeed{
+		Version:      "2.0",
+		XmlnsAtom:    "http://www.w3.org/2005/Atom",
+		XmlnsNewznab: "http://www.newznab.com/DTD/2010/feeds/attributes/",
+		Channel:      v,
+	}
+}
+
 type RssChannel struct {
 	AtomLink    AtomLink      `xml:"http://www.w3.org/2005/Atom atom:link"`
 	Title       string        `xml:"title"`
