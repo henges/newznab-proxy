@@ -1,6 +1,9 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/henges/newznab-proxy/newznab"
@@ -14,6 +17,8 @@ const (
 )
 
 type FeedItem struct {
+	ID              string
+	IndexerName     string
 	Title           string
 	GUID            string
 	GUIDIsPermalink bool
@@ -24,7 +29,31 @@ type FeedItem struct {
 	Description     string
 	NZBLink         string
 	Size            int64
+	Source          FeedItemSource
 	Attrs           map[string]string
+}
+
+func FeedItemFromNewznab(i newznab.Item, indexer string, source FeedItemSource) FeedItem {
+	concat := fmt.Sprintf("%s:%s", indexer, i.GUID.Value)
+	sum := sha256.Sum256([]byte(concat))
+	id := hex.EncodeToString(sum[:])
+
+	return FeedItem{
+		ID:              id,
+		IndexerName:     indexer,
+		Title:           i.Title,
+		GUID:            i.GUID.Value,
+		GUIDIsPermalink: i.GUID.IsPermaLink,
+		Link:            i.Link,
+		Comments:        i.Comments,
+		PubDate:         time.Time(i.PubDate),
+		Category:        i.Category,
+		Description:     i.Description,
+		NZBLink:         i.Enclosure.URL,
+		Size:            i.Enclosure.Length,
+		Source:          source,
+		Attrs:           i.AttrsMap(),
+	}
 }
 
 func (fi FeedItem) ToNewznabItem() newznab.Item {

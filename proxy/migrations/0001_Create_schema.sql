@@ -1,18 +1,20 @@
 -- Main store of NZB feed/search items
 CREATE TABLE feed_items
 (
-    id           TEXT PRIMARY KEY, -- indexer_name:GUID
-    indexer_name TEXT NOT NULL,
-    title        TEXT NOT NULL,
-    guid         TEXT,             -- original feed GUID (may not be unique across indexers)
-    guid_is_permalink int not null default 1,
-    link         TEXT,             -- optional HTML page
-    nzb_url      TEXT NOT NULL,
-    pub_date     DATETIME,
-    size         INTEGER,          -- in bytes
-    category     TEXT,
-    source       TEXT NOT NULL,    -- 'rss' or 'search'
-    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+    id                TEXT PRIMARY KEY,  -- indexer_name:GUID
+    indexer_name      TEXT     NOT NULL,
+    title             TEXT     NOT NULL,
+    guid              TEXT,              -- original feed GUID (may not be unique across indexers)
+    guid_is_permalink int      not null default 1,
+    link              TEXT,              -- optional HTML page
+    nzb_url           TEXT     NOT NULL,
+    pub_date          DATETIME NOT NULL,
+    size              INTEGER,           -- in bytes
+    description       TEXT,
+    comments          TEXT,
+    category          TEXT,
+    source            TEXT     NOT NULL, -- 'rss' or 'search'
+    created_at        DATETIME          DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE feed_item_meta
@@ -45,8 +47,15 @@ CREATE TABLE nzb_cache
     saved_at     DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE VIRTUAL TABLE feed_items_fts5 USING fts5(title, id UNINDEXED);
+CREATE VIRTUAL TABLE feed_items_fts5 USING fts5
+(
+    title,
+    id UNINDEXED
+);
 
-CREATE TRIGGER feed_items_fts5_populate AFTER INSERT ON feed_items BEGIN
+CREATE TRIGGER feed_items_fts5_populate
+    AFTER INSERT
+    ON feed_items
+BEGIN
     INSERT INTO feed_items_fts5(title, id) VALUES (NEW.title, NEW.id);
 end;
