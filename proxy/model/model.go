@@ -93,3 +93,28 @@ func (fi FeedItem) ToNewznabItem() newznab.Item {
 		Attrs: newznab.AttrsFromMap(fi.Attrs),
 	}
 }
+
+type SearchResultStatus string
+
+const (
+	SearchResultStatusHit   SearchResultStatus = "hit"
+	SearchResultStatusMiss  SearchResultStatus = "miss"
+	SearchResultStatusError SearchResultStatus = "error"
+)
+
+func (srs SearchResultStatus) ShouldNotRequery() bool {
+
+	if srs == SearchResultStatusHit || srs == SearchResultStatusMiss {
+		return true
+	}
+	return false
+}
+
+type SearchCacheEntry struct {
+	IndexerName        string
+	Query              string
+	FirstTried         time.Time
+	LastTried          time.Time
+	SearchResultStatus SearchResultStatus
+	ErrorMessage       string
+}

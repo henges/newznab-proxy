@@ -53,6 +53,22 @@ type SearchParams struct {
 	Offset int `schema:"offset,omitempty"`
 }
 
+func (s SearchParams) WithSanitisedQuery() SearchParams {
+
+	return SearchParams{
+		Query:    strings.ToLower(strings.TrimSpace(s.Query)),
+		Group:    s.Group,
+		Limit:    s.Limit,
+		Category: s.Category,
+		Output:   s.Output,
+		Attrs:    s.Attrs,
+		Extended: s.Extended,
+		Del:      s.Del,
+		MaxAge:   s.MaxAge,
+		Offset:   s.Offset,
+	}
+}
+
 func (s SearchParams) Categories() []string {
 
 	return strings.Split(s.Category, ",")

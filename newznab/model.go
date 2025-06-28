@@ -1,6 +1,8 @@
 package newznab
 
 import (
+	"slices"
+	"strings"
 	"time"
 
 	"encoding/xml"
@@ -100,6 +102,9 @@ func AttrsFromMap(m map[string]string) []NewznabAttr {
 			Value: v,
 		})
 	}
+	slices.SortFunc(ret, func(a, b NewznabAttr) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return ret
 }
 

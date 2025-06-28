@@ -32,8 +32,8 @@ CREATE TABLE search_cache
     indexer_name  TEXT     NOT NULL,
     query         TEXT     NOT NULL,
     categories    TEXT     NOT NULL,
-    first_tried   DATETIME NOT NULL,
-    last_tried    DATETIME NOT NULL,
+    first_tried   INTEGER NOT NULL, -- Unix timestamp
+    last_tried    INTEGER NOT NULL, -- Unix timestamp
     status        TEXT     NOT NULL, -- 'hit', 'miss', 'error'
     error_message TEXT,
     UNIQUE (indexer_name, query)

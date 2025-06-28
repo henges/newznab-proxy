@@ -13,3 +13,20 @@ ORDER BY f.rank;
 
 -- name: GetFeedItemMetas :many
 SELECT * FROM feed_item_meta WHERE feed_item_id IN (sqlc.slice(ids));
+
+-- name: LoadCurrentSearchCacheEntriesForQuery :many
+SELECT * FROM search_cache
+WHERE query = ? and last_tried >= ?;
+
+-- name: UpsertSearchCache :exec
+INSERT INTO search_cache (indexer_name,
+                          query,
+                          categories,
+                          first_tried,
+                          last_tried,
+                          status,
+                          error_message)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(indexer_name, query) DO UPDATE SET last_tried    = excluded.last_tried,
+                                               status        = excluded.status,
+                                               error_message = excluded.error_message;

@@ -150,3 +150,39 @@ func (s *Store) GetFeedItemMetas(ctx context.Context, ids []string) (map[string]
 	}
 	return ret, nil
 }
+
+func (s *Store) UpsertSearchCacheEntry(ctx context.Context, entry model.SearchCacheEntry) error {
+
+	return s.q.UpsertSearchCache(ctx, querier.UpsertSearchCacheParams{
+		IndexerName:  entry.IndexerName,
+		Query:        entry.Query,
+		Categories:   "",
+		FirstTried:   entry.FirstTried.Unix(),
+		LastTried:    entry.LastTried.Unix(),
+		Status:       string(entry.SearchResultStatus),
+		ErrorMessage: nullStr(entry.ErrorMessage),
+	})
+}
+
+func (s *Store) LoadCurrentSearchCacheEntriesForQuery(ctx context.Context, query string, after time.Time) (map[string]model.SearchCacheEntry, error) {
+
+	rows, err := s.q.LoadCurrentSearchCacheEntriesForQuery(ctx, querier.LoadCurrentSearchCacheEntriesForQueryParams{
+		Query:     query,
+		LastTried: after.Unix(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	ret := make(map[string]model.SearchCacheEntry, len(rows))
+	for _, item := range rows {
+		ret[item.IndexerName] = model.SearchCacheEntry{
+			IndexerName:        item.IndexerName,
+			Query:              item.Query,
+			FirstTried:         time.Unix(item.FirstTried, 0),
+			LastTried:          time.Unix(item.LastTried, 0),
+			SearchResultStatus: model.SearchResultStatus(item.Status),
+			ErrorMessage:       item.ErrorMessage.String,
+		}
+	}
+	return ret, nil
+}
