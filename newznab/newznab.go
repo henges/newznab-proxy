@@ -1,7 +1,15 @@
 package newznab
 
-type Server interface {
+import "encoding/xml"
+
+type ServerImplementation interface {
 	Search(params SearchParams) (*RssFeed, error)
+}
+
+type ServerError struct {
+	XMLName     xml.Name `xml:"error"`
+	Code        int      `xml:"code"`
+	Description string   `xml:"description"`
 }
 
 type SearchParams struct {
