@@ -13,19 +13,40 @@ import (
 const ua = "newznab-client/0.0.1"
 
 type Client struct {
-	cl      *http.Client
-	baseURL string
-	apiKey  string
+	cl        *http.Client
+	baseURL   string
+	apiKey    string
+	userAgent string
+}
+
+type clientOptions struct {
+	userAgent string
+}
+
+type ClientOption func(options *clientOptions)
+
+func WithUserAgent(s string) ClientOption {
+	return func(options *clientOptions) {
+		options.userAgent = s
+	}
 }
 
 var encoderOnce sync.Once
 var encoder *schema.Encoder
 
-func NewClient(baseURL, apiKey string) *Client {
+func NewClient(baseURL, apiKey string, opts ...ClientOption) *Client {
+	options := &clientOptions{
+		userAgent: ua,
+	}
+	for _, o := range opts {
+		o(options)
+	}
+
 	return &Client{
-		cl:      &http.Client{},
-		baseURL: baseURL,
-		apiKey:  apiKey,
+		cl:        &http.Client{},
+		baseURL:   baseURL,
+		apiKey:    apiKey,
+		userAgent: options.userAgent,
 	}
 }
 
@@ -50,7 +71,7 @@ func (c *Client) Search(ctx context.Context, params SearchParams) (*RssFeed, err
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", ua)
+	req.Header.Set("User-Agent", c.userAgent)
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		return nil, err

@@ -71,6 +71,15 @@ type RssItem struct {
 	Attrs       []NewznabAttr `xml:"newznab:attr"`
 }
 
+func (r RssItem) AttrsMap() map[string]string {
+
+	ret := make(map[string]string, len(r.Attrs))
+	for _, attr := range r.Attrs {
+		ret[attr.Name] = attr.Value
+	}
+	return ret
+}
+
 type RssGuid struct {
 	IsPermaLink bool   `xml:"isPermaLink,attr"`
 	Value       string `xml:",chardata"`

@@ -35,6 +35,10 @@ func (d dummyServerImpl) Search(params newznab.SearchParams) (*newznab.RssFeed, 
 
 func main() {
 
+}
+
+func mainClient() {
+
 	cl := newznab.NewClient("", "")
 	search, err := cl.Search(context.Background(), newznab.SearchParams{
 		Query: "tom james scott",
