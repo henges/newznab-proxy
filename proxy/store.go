@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/henges/newznab-proxy/proxy/model"
 	"github.com/henges/newznab-proxy/proxy/querier"
@@ -52,9 +53,11 @@ func (s *Store) InsertFeedItem(ctx context.Context, fi model.FeedItem) error {
 		Title:           fi.Title,
 		Guid:            nullStr(fi.GUID),
 		GuidIsPermalink: isPerma,
+		Comments:        nullStr(fi.Comments),
+		Description:     nullStr(fi.Description),
 		Link:            nullStr(fi.Link),
 		NzbUrl:          fi.NZBLink,
-		PubDate:         fi.PubDate,
+		PubDate:         timeToString(fi.PubDate),
 		Size: sql.NullInt64{
 			Int64: fi.Size,
 			Valid: true,
@@ -99,6 +102,8 @@ func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]model.F
 		}
 		meta, _ := metas[item.ID]
 
+		pubDate, _ := timeFromString(item.PubDate)
+
 		return model.FeedItem{
 			ID:              item.ID,
 			IndexerName:     item.IndexerName,
@@ -107,7 +112,7 @@ func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]model.F
 			GUIDIsPermalink: guidIsPermalink,
 			Link:            item.Link.String,
 			Comments:        item.Comments.String,
-			PubDate:         item.PubDate,
+			PubDate:         pubDate,
 			Category:        item.Category.String,
 			Description:     item.Description.String,
 			NZBLink:         item.NzbUrl,
@@ -116,6 +121,16 @@ func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]model.F
 		}
 	})
 	return ret, nil
+}
+
+func timeToString(t time.Time) string {
+
+	return t.Format(time.RFC3339)
+}
+
+func timeFromString(s string) (time.Time, error) {
+
+	return time.Parse(time.RFC3339, s)
 }
 
 func (s *Store) GetFeedItemMetas(ctx context.Context, ids []string) (map[string]map[string]string, error) {

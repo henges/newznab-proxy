@@ -115,7 +115,7 @@ func (s *Server) search(rw http.ResponseWriter, r *http.Request) {
 		respondError(rw, http.StatusBadRequest, err)
 		return
 	}
-	res, err := s.impl.Search(nil, p)
+	res, err := s.impl.Search(r.Context(), p)
 	if err != nil {
 		var srvErr ServerError
 		if errors.As(err, &srvErr) {

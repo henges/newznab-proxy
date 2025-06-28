@@ -8,7 +8,7 @@ CREATE TABLE feed_items
     guid_is_permalink int      not null default 1,
     link              TEXT,              -- optional HTML page
     nzb_url           TEXT     NOT NULL,
-    pub_date          DATETIME NOT NULL,
+    pub_date          TEXT     NOT NULL,
     size              INTEGER,           -- in bytes
     description       TEXT,
     comments          TEXT,

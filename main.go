@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/henges/newznab-proxy/newznab"
+	"github.com/henges/newznab-proxy/proxy"
 )
 
 type dummyServerImpl struct{}
@@ -35,6 +37,22 @@ func (d dummyServerImpl) Search(ctx context.Context, params newznab.SearchParams
 
 func main() {
 
+	ctx := context.Background()
+	cfg := proxy.MustGetConfig()
+	prox, err := proxy.NewProxy(ctx, cfg)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	srv := newznab.NewServer(prox)
+	hsrv := http.Server{Addr: "0.0.0.0:80", Handler: srv.Handler()}
+	go func() {
+		hsrv.ListenAndServe()
+	}()
+	fmt.Println("server up")
+	for {
+		select {}
+	}
 }
 
 func mainClient() {
