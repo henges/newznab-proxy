@@ -5,11 +5,12 @@ CREATE TABLE feed_items
     indexer_name TEXT NOT NULL,
     title        TEXT NOT NULL,
     guid         TEXT,             -- original feed GUID (may not be unique across indexers)
+    guid_is_permalink int not null default 1,
     link         TEXT,             -- optional HTML page
     nzb_url      TEXT NOT NULL,
     pub_date     DATETIME,
     size         INTEGER,          -- in bytes
-    categories   TEXT,
+    category     TEXT,
     source       TEXT NOT NULL,    -- 'rss' or 'search'
     created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
 );

@@ -36,7 +36,7 @@ type RssChannel struct {
 	Category    string        `xml:"category"`
 	Image       *ChannelImage `xml:"image,omitempty"`
 	Response    NewznabResponse
-	Items       []RssItem `xml:"item"`
+	Items       []Item `xml:"item"`
 }
 
 type AtomLink struct {
@@ -59,7 +59,7 @@ type NewznabResponse struct {
 	Total   int      `xml:"total,attr"`
 }
 
-type RssItem struct {
+type Item struct {
 	Title       string        `xml:"title"`
 	GUID        RssGuid       `xml:"guid"`
 	Link        string        `xml:"link"`
@@ -71,11 +71,22 @@ type RssItem struct {
 	Attrs       []NewznabAttr `xml:"newznab:attr"`
 }
 
-func (r RssItem) AttrsMap() map[string]string {
+func (r Item) AttrsMap() map[string]string {
 
 	ret := make(map[string]string, len(r.Attrs))
 	for _, attr := range r.Attrs {
 		ret[attr.Name] = attr.Value
+	}
+	return ret
+}
+
+func AttrsFromMap(m map[string]string) []NewznabAttr {
+	ret := make([]NewznabAttr, 0, len(m))
+	for k, v := range m {
+		ret = append(ret, NewznabAttr{
+			Name:  k,
+			Value: v,
+		})
 	}
 	return ret
 }

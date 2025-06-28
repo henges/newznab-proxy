@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/henges/newznab-proxy/newznab"
 	_ "modernc.org/sqlite"
 )
 
@@ -23,4 +24,8 @@ func NewStore(ctx context.Context, path string) (*Store, error) {
 		return nil, err
 	}
 	return &Store{db: db}, nil
+}
+
+func SearchForFeedItem(ctx context.Context, search string) ([]newznab.Item, error) {
+
 }
