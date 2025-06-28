@@ -1,10 +1,12 @@
 package newznab
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
 
+	"github.com/gorilla/schema"
 	"github.com/henges/newznab-proxy/xmlutil"
 )
 
@@ -93,6 +95,7 @@ func (s *Server) apiHandler(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Rest of the implementation is delegated to handler funcs
 	switch reqType {
 	case "search":
 		s.search(rw, r)
@@ -101,22 +104,27 @@ func (s *Server) apiHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+var decoder = schema.NewDecoder()
+
 func (s *Server) search(rw http.ResponseWriter, r *http.Request) {
 
-	req := SearchParams{
-		APIKey:   r.Form.Get("apikey"),
-		Query:    r.Form.Get(),
-		Group:    "",
-		Limit:    0,
-		Category: "",
-		Output:   "",
-		Attrs:    "",
-		Extended: false,
-		Del:      false,
-		MaxAge:   0,
-		Offset:   0,
+	var p SearchParams
+	err := decoder.Decode(&p, r.Form)
+	if err != nil {
+		respondError(rw, http.StatusBadRequest, err)
+		return
 	}
-
+	res, err := s.impl.Search(p)
+	if err != nil {
+		var srvErr ServerError
+		if errors.As(err, &srvErr) {
+			respondXML(rw, srvErr)
+			return
+		}
+		respondError(rw, http.StatusInternalServerError, err)
+		return
+	}
+	respondXML(rw, res)
 }
 
 func respondXML(rw http.ResponseWriter, v any) {

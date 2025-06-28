@@ -21,6 +21,7 @@ CREATE TABLE search_cache
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     indexer_name  TEXT NOT NULL,
     query         TEXT     NOT NULL,
+    categories    TEXT     NOT NULL,
     first_tried   DATETIME NOT NULL,
     last_tried    DATETIME NOT NULL,
     status        TEXT     NOT NULL, -- 'hit', 'miss', 'error'

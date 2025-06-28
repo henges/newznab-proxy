@@ -1,6 +1,9 @@
 package newznab
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"fmt"
+)
 
 type ServerImplementation interface {
 	Search(params SearchParams) (*RssFeed, error)
@@ -12,16 +15,20 @@ type ServerError struct {
 	Description string   `xml:"description"`
 }
 
+func (s ServerError) Error() string {
+	return fmt.Sprintf("%d: %s", s.Code, s.Description)
+}
+
 type SearchParams struct {
-	APIKey   string
-	Query    string
-	Group    string
-	Limit    int
-	Category string
-	Output   string
-	Attrs    string
-	Extended bool
-	Del      bool
-	MaxAge   int
-	Offset   int
+	APIKey   string `schema:"apikey"`
+	Query    string `schema:"q"`
+	Group    string `schema:"group"`
+	Limit    int    `schema:"limit"`
+	Category string `schema:"cat"`
+	Output   string `schema:"o"`
+	Attrs    string `schema:"attrs"`
+	Extended bool   `schema:"extended"`
+	Del      bool   `schema:"del"`
+	MaxAge   int    `schema:"maxage"`
+	Offset   int    `schema:"offset"`
 }
