@@ -62,6 +62,7 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) HandlerWithMux(m *http.ServeMux) http.Handler {
 
 	m.Handle("GET /api", http.HandlerFunc(s.apiHandler))
+	m.Handle("GET /getnzb/{id}", http.HandlerFunc(s.getNZB))
 	var ret http.Handler = m
 	for _, middle := range s.middlewares {
 		ret = middle(ret)
@@ -103,6 +104,27 @@ func (s *Server) apiHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) getNZB(rw http.ResponseWriter, r *http.Request) {
+
+	value := r.PathValue("id")
+	if value == "" {
+		respondErrorString(rw, http.StatusBadRequest, "an NZB id must be provided")
+		return
+	}
+
+	nzb, err := s.impl.GetNZB(r.Context(), value)
+	if err != nil {
+		var srvErr ServerError
+		if errors.As(err, &srvErr) {
+			respondXML(rw, srvErr)
+			return
+		}
+		respondError(rw, http.StatusInternalServerError, err)
+		return
+	}
+	respondNZB(rw, nzb)
+}
+
 var decoder = schema.NewDecoder()
 
 func (s *Server) search(rw http.ResponseWriter, r *http.Request) {
@@ -128,13 +150,20 @@ func (s *Server) search(rw http.ResponseWriter, r *http.Request) {
 }
 
 func respondXML(rw http.ResponseWriter, v any) {
+	rw.Header().Set("Content-Type", "application/xml")
 	rw.WriteHeader(http.StatusOK)
 	writeXML(rw, v)
 }
 
+func respondNZB(rw http.ResponseWriter, nzb NZB) {
+	rw.Header().Set("Content-Type", "application/x-nzb")
+	rw.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", nzb.Filename))
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(nzb.Data)
+}
+
 func writeXML(rw http.ResponseWriter, v any) {
 	bytes, _ := xmlutil.Marshal(v)
-	rw.Header().Set("Content-Type", "application/xml")
 	rw.Write(bytes)
 }
 
@@ -145,6 +174,7 @@ func respondError(rw http.ResponseWriter, code int, err error) {
 
 func respondErrorString(rw http.ResponseWriter, code int, err string) {
 
+	rw.Header().Set("Content-Type", "application/xml")
 	rw.WriteHeader(http.StatusOK)
 	resp := ServerError{
 		Code:        code,

@@ -1,4 +1,4 @@
-package model
+package proxy
 
 import (
 	"crypto/sha256"
@@ -56,19 +56,22 @@ func FeedItemFromNewznab(i newznab.Item, indexer string, source FeedItemSource) 
 	}
 }
 
-func (fi FeedItem) RewrittenNZBLink(host string, tls bool) string {
+func (fi FeedItem) RewrittenNZBLink(host string, port uint16, tls bool) string {
 
 	proto := "http"
 	if tls {
 		proto = "https"
 	}
+	if port != 0 && port != 80 {
+		host = fmt.Sprintf("%s:%d", host, port)
+	}
 	return fmt.Sprintf("%s://%s/getnzb/%s", proto, host, fi.ID)
 }
 
-func (fi FeedItem) ToRewrittenNewznabItem(host string, tls bool) newznab.Item {
+func (fi FeedItem) ToRewrittenNewznabItem(host string, port uint16, tls bool) newznab.Item {
 
 	ret := fi.ToNewznabItem()
-	ret.Enclosure.URL = fi.RewrittenNZBLink(host, tls)
+	ret.Enclosure.URL = fi.RewrittenNZBLink(host, port, tls)
 	return ret
 }
 
@@ -117,4 +120,10 @@ type SearchCacheEntry struct {
 	LastTried          time.Time
 	SearchResultStatus SearchResultStatus
 	ErrorMessage       string
+}
+
+type NZBData struct {
+	Title       string
+	IndexerName string
+	URL         string
 }

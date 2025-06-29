@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/henges/newznab-proxy/proxy/model"
 	"github.com/henges/newznab-proxy/proxy/querier"
 	"github.com/samber/lo"
 	_ "modernc.org/sqlite"
@@ -52,7 +51,7 @@ func (s *Store) GetFeedItemIDs(ctx context.Context, ids []string) (map[string]st
 	return ret, nil
 }
 
-func (s *Store) InsertFeedItem(ctx context.Context, fi model.FeedItem) error {
+func (s *Store) InsertFeedItem(ctx context.Context, fi FeedItem) error {
 
 	isPerma := int64(0)
 	if fi.GUIDIsPermalink {
@@ -93,7 +92,7 @@ func (s *Store) InsertFeedItem(ctx context.Context, fi model.FeedItem) error {
 	return nil
 }
 
-func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]model.FeedItem, error) {
+func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]FeedItem, error) {
 
 	rows, err := s.q.SearchForFeedItem(ctx, search)
 	if err != nil {
@@ -107,7 +106,7 @@ func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]model.F
 		return nil, err
 	}
 
-	ret := lo.Map(rows, func(item querier.FeedItem, index int) model.FeedItem {
+	ret := lo.Map(rows, func(item querier.FeedItem, index int) FeedItem {
 		guidIsPermalink := false
 		if item.GuidIsPermalink == 1 {
 			guidIsPermalink = true
@@ -116,7 +115,7 @@ func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]model.F
 
 		pubDate, _ := timeFromString(item.PubDate)
 
-		return model.FeedItem{
+		return FeedItem{
 			ID:              item.ID,
 			IndexerName:     item.IndexerName,
 			Title:           item.Title,
@@ -163,7 +162,7 @@ func (s *Store) GetFeedItemMetas(ctx context.Context, ids []string) (map[string]
 	return ret, nil
 }
 
-func (s *Store) UpsertSearchCacheEntry(ctx context.Context, entry model.SearchCacheEntry) error {
+func (s *Store) UpsertSearchCacheEntry(ctx context.Context, entry SearchCacheEntry) error {
 
 	return s.q.UpsertSearchCache(ctx, querier.UpsertSearchCacheParams{
 		IndexerName:  entry.IndexerName,
@@ -176,7 +175,7 @@ func (s *Store) UpsertSearchCacheEntry(ctx context.Context, entry model.SearchCa
 	})
 }
 
-func (s *Store) LoadCurrentSearchCacheEntriesForQuery(ctx context.Context, query string, after time.Time) (map[string]model.SearchCacheEntry, error) {
+func (s *Store) LoadCurrentSearchCacheEntriesForQuery(ctx context.Context, query string, after time.Time) (map[string]SearchCacheEntry, error) {
 
 	rows, err := s.q.LoadCurrentSearchCacheEntriesForQuery(ctx, querier.LoadCurrentSearchCacheEntriesForQueryParams{
 		Query:     query,
@@ -185,16 +184,30 @@ func (s *Store) LoadCurrentSearchCacheEntriesForQuery(ctx context.Context, query
 	if err != nil {
 		return nil, err
 	}
-	ret := make(map[string]model.SearchCacheEntry, len(rows))
+	ret := make(map[string]SearchCacheEntry, len(rows))
 	for _, item := range rows {
-		ret[item.IndexerName] = model.SearchCacheEntry{
+		ret[item.IndexerName] = SearchCacheEntry{
 			IndexerName:        item.IndexerName,
 			Query:              item.Query,
 			FirstTried:         time.Unix(item.FirstTried, 0),
 			LastTried:          time.Unix(item.LastTried, 0),
-			SearchResultStatus: model.SearchResultStatus(item.Status),
+			SearchResultStatus: SearchResultStatus(item.Status),
 			ErrorMessage:       item.ErrorMessage.String,
 		}
+	}
+	return ret, nil
+}
+
+func (s *Store) GetNZBDataByID(ctx context.Context, id string) (NZBData, error) {
+
+	row, err := s.q.GetNZBDataByID(ctx, id)
+	if err != nil {
+		return NZBData{}, err
+	}
+	ret := NZBData{
+		Title:       row.Title,
+		IndexerName: row.IndexerName,
+		URL:         row.NzbUrl,
 	}
 	return ret, nil
 }

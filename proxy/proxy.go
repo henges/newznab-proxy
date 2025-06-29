@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"maps"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/henges/newznab-proxy/newznab"
-	"github.com/henges/newznab-proxy/proxy/model"
 	"github.com/samber/lo"
 )
 
@@ -72,10 +72,10 @@ func (p *Proxy) StartRSSPolls(ctx context.Context) {
 					if err != nil {
 						return err
 					}
-					feedItems := lo.Map(items.Channel.Items, func(item newznab.Item, index int) model.FeedItem {
-						return model.FeedItemFromNewznab(item, b.name, model.FeedItemSourceRSS)
+					feedItems := lo.Map(items.Channel.Items, func(item newznab.Item, index int) FeedItem {
+						return FeedItemFromNewznab(item, b.name, FeedItemSourceRSS)
 					})
-					ids := lo.Map(feedItems, func(item model.FeedItem, index int) string {
+					ids := lo.Map(feedItems, func(item FeedItem, index int) string {
 						return item.ID
 					})
 					existingIDs, err := p.s.GetFeedItemIDs(ctx, ids)
@@ -147,9 +147,9 @@ func (p *Proxy) StopRSSPolls() error {
 	}
 }
 
-func feedItemsToRssFeed(fis []model.FeedItem, host string, tls bool) *newznab.RssFeed {
-	newzItems := lo.Map(fis, func(item model.FeedItem, index int) newznab.Item {
-		return item.ToRewrittenNewznabItem(host, tls)
+func feedItemsToRssFeed(fis []FeedItem, host string, port uint16, tls bool) *newznab.RssFeed {
+	newzItems := lo.Map(fis, func(item FeedItem, index int) newznab.Item {
+		return item.ToRewrittenNewznabItem(host, port, tls)
 	})
 	ret := newznab.NewRssFeedFromItems(0, len(newzItems), newzItems)
 	return &ret
@@ -163,7 +163,7 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 		return nil, err
 	}
 	if len(matches) > 0 {
-		return feedItemsToRssFeed(matches, p.c.Web.ExternalHost, p.c.Web.TLS), nil
+		return feedItemsToRssFeed(matches, p.c.Web.ExternalHost, p.c.Web.Port, p.c.Web.TLS), nil
 	}
 
 	params = params.WithSanitisedQuery()
@@ -175,7 +175,7 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 	type result struct {
 		skipped bool
 		err     error
-		vals    []model.FeedItem
+		vals    []FeedItem
 	}
 	results := make([]result, len(p.backends))
 	for i, b := range p.backends {
@@ -192,13 +192,13 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 				results[i] = result{err: err}
 				return
 			}
-			results[i] = result{vals: lo.Map(searchRes.Channel.Items, func(item newznab.Item, index int) model.FeedItem {
-				return model.FeedItemFromNewznab(item, b.name, model.FeedItemSourceSearch)
+			results[i] = result{vals: lo.Map(searchRes.Channel.Items, func(item newznab.Item, index int) FeedItem {
+				return FeedItemFromNewznab(item, b.name, FeedItemSourceSearch)
 			})}
 		}()
 	}
 	wg.Wait()
-	remoteMatches := make([]model.FeedItem, 0, 10)
+	remoteMatches := make([]FeedItem, 0, 10)
 	for i, res := range results {
 		b := p.backends[i]
 		if res.skipped {
@@ -210,12 +210,12 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 
 		if res.err != nil {
 			fmt.Printf("%s: Failed to get results because: %s", b.name, res.err)
-			err = p.s.UpsertSearchCacheEntry(ctx, model.SearchCacheEntry{
+			err = p.s.UpsertSearchCacheEntry(ctx, SearchCacheEntry{
 				IndexerName:        b.name,
 				Query:              params.Query,
 				FirstTried:         time.Now(),
 				LastTried:          time.Now(),
-				SearchResultStatus: model.SearchResultStatusError,
+				SearchResultStatus: SearchResultStatusError,
 				ErrorMessage:       res.err.Error(),
 			})
 			if err != nil {
@@ -224,11 +224,11 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 			continue
 		}
 		// If we got here then we either got a hit or a miss for this indexer
-		status := model.SearchResultStatusHit
+		status := SearchResultStatusHit
 		if len(res.vals) == 0 {
-			status = model.SearchResultStatusMiss
+			status = SearchResultStatusMiss
 		}
-		err = p.s.UpsertSearchCacheEntry(ctx, model.SearchCacheEntry{
+		err = p.s.UpsertSearchCacheEntry(ctx, SearchCacheEntry{
 			IndexerName:        b.name,
 			Query:              params.Query,
 			FirstTried:         time.Now(),
@@ -248,5 +248,42 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 			remoteMatches = append(remoteMatches, fi)
 		}
 	}
-	return feedItemsToRssFeed(remoteMatches, p.c.Web.ExternalHost, p.c.Web.TLS), nil
+	return feedItemsToRssFeed(remoteMatches, p.c.Web.ExternalHost, p.c.Web.Port, p.c.Web.TLS), nil
+}
+
+func (p *Proxy) GetNZB(ctx context.Context, id string) (newznab.NZB, error) {
+
+	var ret newznab.NZB
+	nzbData, err := p.s.GetNZBDataByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ret, newznab.ServerError{
+				Code:        400,
+				Description: "no NZB found with id " + id,
+			}
+		}
+		return ret, err
+	}
+	var source *backend
+	for _, b := range p.backends {
+		if b.name == nzbData.IndexerName {
+			source = &b
+			break
+		}
+	}
+	if source == nil {
+		return ret, newznab.ServerError{
+			Code:        400,
+			Description: "the indexer that provided this NZB is no longer configured: " + nzbData.IndexerName,
+		}
+	}
+	data, err := source.client.GetNZB(ctx, nzbData.URL)
+	if err != nil {
+		return ret, err
+	}
+	ret = newznab.NZB{
+		Filename: fmt.Sprintf("%s.nzb", nzbData.Title),
+		Data:     data,
+	}
+	return ret, nil
 }

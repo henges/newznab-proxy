@@ -9,6 +9,7 @@ import (
 
 type ServerImplementation interface {
 	Search(ctx context.Context, params SearchParams) (*RssFeed, error)
+	GetNZB(ctx context.Context, id string) (NZB, error)
 }
 
 type ServerError struct {

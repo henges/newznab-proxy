@@ -2,6 +2,7 @@ package newznab
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"sync"
@@ -107,4 +108,23 @@ func (c *Client) PollRSS(ctx context.Context, rssPath string, params map[string]
 		return nil, err
 	}
 	return &ret, nil
+}
+
+func (c *Client) GetNZB(ctx context.Context, fullURL string) ([]byte, error) {
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", c.userAgent)
+	resp, err := c.cl.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }

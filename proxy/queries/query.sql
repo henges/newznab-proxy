@@ -33,3 +33,6 @@ VALUES (?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(indexer_name, query) DO UPDATE SET last_tried    = excluded.last_tried,
                                                status        = excluded.status,
                                                error_message = excluded.error_message;
+
+-- name: GetNZBDataByID :one
+SELECT title, indexer_name, nzb_url FROM feed_items WHERE id = ? LIMIT 1;

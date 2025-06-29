@@ -153,3 +153,8 @@ func (r RFC1123Time) String() string {
 
 	return time.Time(r).String()
 }
+
+type NZB struct {
+	Filename string
+	Data     []byte
+}
