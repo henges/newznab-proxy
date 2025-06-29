@@ -67,6 +67,9 @@ func (s *Server) HandlerWithMux(m *http.ServeMux) http.Handler {
 	for _, middle := range s.middlewares {
 		ret = middle(ret)
 	}
+	m.Handle("GET /healthz", http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	}))
 	return ret
 }
 

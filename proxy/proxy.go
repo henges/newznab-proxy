@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"maps"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/henges/newznab-proxy/newznab"
@@ -21,7 +20,7 @@ type Proxy struct {
 
 	pollerWg     *sync.WaitGroup
 	pollerCancel func()
-	stopped      atomic.Bool
+	done         chan struct{}
 }
 
 var _ newznab.ServerImplementation = (*Proxy)(nil)
@@ -57,6 +56,7 @@ func NewProxy(ctx context.Context, c *Config) (*Proxy, error) {
 func (p *Proxy) StartRSSPolls(ctx context.Context) {
 
 	ctx, p.pollerCancel = context.WithCancel(ctx)
+	p.done = make(chan struct{})
 	for _, b := range p.backends {
 		if b.rssCfg == nil {
 			continue
@@ -93,7 +93,8 @@ func (p *Proxy) StartRSSPolls(ctx context.Context) {
 					}
 					return nil
 				}
-				err := poll()
+				var err error
+				err = poll()
 				if err != nil {
 					fmt.Printf("%s feed %s: error polling: %s", b.name, feed.Name, err)
 				}
@@ -102,13 +103,14 @@ func (p *Proxy) StartRSSPolls(ctx context.Context) {
 					select {
 					case <-time.After(feed.PollInterval):
 						{
-							if p.stopped.Load() {
-								return
-							}
 							err = poll()
 							if err != nil {
 								fmt.Printf("%s feed %s: error polling: %s", b.name, feed.Name, err)
 							}
+						}
+					case <-p.done:
+						{
+							return
 						}
 					case <-ctx.Done():
 						{
@@ -125,7 +127,7 @@ func (p *Proxy) StopRSSPolls() error {
 	if p.pollerCancel == nil {
 		return nil
 	}
-	p.stopped.Store(true)
+	close(p.done)
 	done := make(chan struct{}, 1)
 	go func() {
 		p.pollerWg.Wait()
