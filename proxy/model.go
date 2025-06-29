@@ -71,7 +71,9 @@ func (fi FeedItem) RewrittenNZBLink(host string, port uint16, tls bool) string {
 func (fi FeedItem) ToRewrittenNewznabItem(host string, port uint16, tls bool) newznab.Item {
 
 	ret := fi.ToNewznabItem()
-	ret.Enclosure.URL = fi.RewrittenNZBLink(host, port, tls)
+	rewriteLink := fi.RewrittenNZBLink(host, port, tls)
+	ret.Enclosure.URL = rewriteLink
+	ret.Link = rewriteLink
 	return ret
 }
 
