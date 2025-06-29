@@ -3,6 +3,7 @@ package proxy
 import (
 	"cmp"
 	"os"
+	"time"
 
 	"github.com/goccy/go-yaml"
 )
@@ -39,8 +40,9 @@ type RSSConfig struct {
 }
 
 type RSSFeed struct {
-	Name        string            `yaml:"name"`
-	QueryParams map[string]string `yaml:"queryParams"`
+	Name         string            `yaml:"name"`
+	PollInterval time.Duration     `yaml:"pollInterval"`
+	QueryParams  map[string]string `yaml:"queryParams"`
 }
 
 const configPathEnvVar = "NEWZNAB_PROXY_CONFIG_PATH"

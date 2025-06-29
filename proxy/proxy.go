@@ -2,8 +2,11 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/henges/newznab-proxy/newznab"
@@ -15,6 +18,10 @@ type Proxy struct {
 	c        *Config
 	s        *Store
 	backends []backend
+
+	pollerWg     *sync.WaitGroup
+	pollerCancel func()
+	stopped      atomic.Bool
 }
 
 var _ newznab.ServerImplementation = (*Proxy)(nil)
@@ -43,14 +50,108 @@ func NewProxy(ctx context.Context, c *Config) (*Proxy, error) {
 		c:        c,
 		s:        db,
 		backends: backends,
+		pollerWg: &sync.WaitGroup{},
 	}, nil
+}
+
+func (p *Proxy) StartRSSPolls(ctx context.Context) {
+
+	ctx, p.pollerCancel = context.WithCancel(ctx)
+	for _, b := range p.backends {
+		if b.rssCfg == nil {
+			continue
+		}
+		for _, feed := range b.rssCfg.Feeds {
+			params := maps.Clone(b.rssCfg.RSSQueryParams)
+			maps.Copy(params, feed.QueryParams)
+			p.pollerWg.Add(1)
+			go func() {
+				defer p.pollerWg.Done()
+				poll := func() error {
+					items, err := b.client.PollRSS(ctx, b.rssCfg.RSSPath, params)
+					if err != nil {
+						return err
+					}
+					feedItems := lo.Map(items.Channel.Items, func(item newznab.Item, index int) model.FeedItem {
+						return model.FeedItemFromNewznab(item, b.name, model.FeedItemSourceRSS)
+					})
+					ids := lo.Map(feedItems, func(item model.FeedItem, index int) string {
+						return item.ID
+					})
+					existingIDs, err := p.s.GetFeedItemIDs(ctx, ids)
+					if err != nil {
+						return err
+					}
+					for _, fi := range feedItems {
+						if _, ok := existingIDs[fi.ID]; ok {
+							continue
+						}
+						err = p.s.InsertFeedItem(ctx, fi)
+						if err != nil {
+							return err
+						}
+					}
+					return nil
+				}
+				err := poll()
+				if err != nil {
+					fmt.Printf("%s feed %s: error polling: %s", b.name, feed.Name, err)
+				}
+
+				for {
+					select {
+					case <-time.After(feed.PollInterval):
+						{
+							if p.stopped.Load() {
+								return
+							}
+							err = poll()
+							if err != nil {
+								fmt.Printf("%s feed %s: error polling: %s", b.name, feed.Name, err)
+							}
+						}
+					case <-ctx.Done():
+						{
+							return
+						}
+					}
+				}
+			}()
+		}
+	}
+}
+
+func (p *Proxy) StopRSSPolls() error {
+	if p.pollerCancel == nil {
+		return nil
+	}
+	p.stopped.Store(true)
+	done := make(chan struct{}, 1)
+	go func() {
+		p.pollerWg.Wait()
+		done <- struct{}{}
+	}()
+	for {
+		select {
+		case <-time.After(10 * time.Second):
+			{
+				p.pollerCancel()
+				return errors.New("forced cancel")
+			}
+		case <-done:
+			{
+				p.pollerCancel()
+				return nil
+			}
+		}
+	}
 }
 
 func feedItemsToRssFeed(fis []model.FeedItem, host string, tls bool) *newznab.RssFeed {
 	newzItems := lo.Map(fis, func(item model.FeedItem, index int) newznab.Item {
 		return item.ToRewrittenNewznabItem(host, tls)
 	})
-	ret := newznab.NewRssFeedFromItems(0, 0, newzItems)
+	ret := newznab.NewRssFeedFromItems(0, len(newzItems), newzItems)
 	return &ret
 }
 

@@ -61,13 +61,12 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) HandlerWithMux(m *http.ServeMux) http.Handler {
 
-	var f http.Handler = http.HandlerFunc(s.apiHandler)
+	m.Handle("GET /api", http.HandlerFunc(s.apiHandler))
+	var ret http.Handler = m
 	for _, middle := range s.middlewares {
-		f = middle(f)
+		ret = middle(ret)
 	}
-
-	m.Handle("GET /api", f)
-	return m
+	return ret
 }
 
 func (s *Server) apiHandler(rw http.ResponseWriter, r *http.Request) {

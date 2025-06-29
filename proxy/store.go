@@ -40,6 +40,18 @@ func nullStr(s string) sql.NullString {
 	}
 }
 
+func (s *Store) GetFeedItemIDs(ctx context.Context, ids []string) (map[string]struct{}, error) {
+
+	rows, err := s.q.GetFeedItemIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	ret := lo.Associate(rows, func(item string) (string, struct{}) {
+		return item, struct{}{}
+	})
+	return ret, nil
+}
+
 func (s *Store) InsertFeedItem(ctx context.Context, fi model.FeedItem) error {
 
 	isPerma := int64(0)
