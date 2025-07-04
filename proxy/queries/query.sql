@@ -21,6 +21,10 @@ SELECT * FROM feed_item_meta WHERE feed_item_id IN (sqlc.slice(ids));
 SELECT * FROM search_cache
 WHERE query = ? and last_tried >= ?;
 
+-- name: LoadSearchCacheEntriesForQuery :many
+SELECT * FROM search_cache
+WHERE query = ?;
+
 -- name: UpsertSearchCache :exec
 INSERT INTO search_cache (indexer_name,
                           query,

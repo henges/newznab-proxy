@@ -175,6 +175,26 @@ func (s *Store) UpsertSearchCacheEntry(ctx context.Context, entry SearchCacheEnt
 	})
 }
 
+func (s *Store) LoadSearchCacheEntriesForQuery(ctx context.Context, query string) (map[string]SearchCacheEntry, error) {
+
+	rows, err := s.q.LoadSearchCacheEntriesForQuery(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	ret := make(map[string]SearchCacheEntry, len(rows))
+	for _, item := range rows {
+		ret[item.IndexerName] = SearchCacheEntry{
+			IndexerName:        item.IndexerName,
+			Query:              item.Query,
+			FirstTried:         time.Unix(item.FirstTried, 0),
+			LastTried:          time.Unix(item.LastTried, 0),
+			SearchResultStatus: SearchResultStatus(item.Status),
+			ErrorMessage:       item.ErrorMessage.String,
+		}
+	}
+	return ret, nil
+}
+
 func (s *Store) LoadCurrentSearchCacheEntriesForQuery(ctx context.Context, query string, after time.Time) (map[string]SearchCacheEntry, error) {
 
 	rows, err := s.q.LoadCurrentSearchCacheEntriesForQuery(ctx, querier.LoadCurrentSearchCacheEntriesForQueryParams{

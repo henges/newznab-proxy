@@ -169,7 +169,7 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 	}
 
 	params = params.WithSanitisedQuery()
-	searchCache, err := p.s.LoadCurrentSearchCacheEntriesForQuery(ctx, params.Query, time.Now().Add(-requeryThreshold))
+	searchCache, err := p.s.LoadSearchCacheEntriesForQuery(ctx, params.Query)
 	if err != nil {
 		return nil, err
 	}
