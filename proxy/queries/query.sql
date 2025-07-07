@@ -1,9 +1,10 @@
--- name: InsertFeedItem :exec
-INSERT INTO feed_items (id, indexer_name, title, guid, guid_is_permalink, comments, description, link, nzb_url, pub_date, size, category, source)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+-- name: InsertFeedItem :one
+INSERT INTO feed_items (uuid, indexer_name, title, guid, guid_is_permalink, link, nzb_url, pub_date, size, source)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING id;
 
--- name: GetFeedItemIDs :many
-SELECT id FROM feed_items WHERE id IN (sqlc.slice(ids));
+-- name: GetFeedItemUUIDs :many
+SELECT uuid FROM feed_items WHERE uuid IN (sqlc.slice(ids));
 
 -- name: InsertFeedItemMeta :exec
 INSERT INTO feed_item_meta (feed_item_id, name, value) VALUES (?, ?, ?);
@@ -38,5 +39,5 @@ ON CONFLICT(indexer_name, query) DO UPDATE SET last_tried    = excluded.last_tri
                                                status        = excluded.status,
                                                error_message = excluded.error_message;
 
--- name: GetNZBDataByID :one
-SELECT title, indexer_name, nzb_url FROM feed_items WHERE id = ? LIMIT 1;
+-- name: GetNZBDataByUUID :one
+SELECT title, indexer_name, nzb_url FROM feed_items WHERE uuid = ? LIMIT 1;

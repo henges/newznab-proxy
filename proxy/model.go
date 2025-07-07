@@ -17,16 +17,13 @@ const (
 )
 
 type FeedItem struct {
-	ID              string
+	UUID            string
 	IndexerName     string
 	Title           string
 	GUID            string
 	GUIDIsPermalink bool
 	Link            string
-	Comments        string
 	PubDate         time.Time
-	Category        string
-	Description     string
 	NZBLink         string
 	Size            int64
 	Source          FeedItemSource
@@ -39,16 +36,13 @@ func FeedItemFromNewznab(i newznab.Item, indexer string, source FeedItemSource) 
 	id := hex.EncodeToString(sum[:])
 
 	return FeedItem{
-		ID:              id,
+		UUID:            id,
 		IndexerName:     indexer,
 		Title:           i.Title,
 		GUID:            i.GUID.Value,
 		GUIDIsPermalink: i.GUID.IsPermaLink,
 		Link:            i.Link,
-		Comments:        i.Comments,
 		PubDate:         time.Time(i.PubDate),
-		Category:        i.Category,
-		Description:     i.Description,
 		NZBLink:         i.Enclosure.URL,
 		Size:            i.Enclosure.Length,
 		Source:          source,
@@ -65,7 +59,7 @@ func (fi FeedItem) RewrittenNZBLink(host string, port uint16, tls bool) string {
 	if port != 0 && port != 80 {
 		host = fmt.Sprintf("%s:%d", host, port)
 	}
-	return fmt.Sprintf("%s://%s/getnzb/%s", proto, host, fi.ID)
+	return fmt.Sprintf("%s://%s/getnzb/%s", proto, host, fi.UUID)
 }
 
 func (fi FeedItem) ToRewrittenNewznabItem(host string, port uint16, tls bool) newznab.Item {
@@ -86,10 +80,10 @@ func (fi FeedItem) ToNewznabItem() newznab.Item {
 			Value:       fi.GUID,
 		},
 		Link:        fi.Link,
-		Comments:    fi.Comments,
+		Comments:    "",
 		PubDate:     newznab.RFC1123Time(fi.PubDate),
-		Category:    fi.Category,
-		Description: fi.Description,
+		Category:    "",
+		Description: "",
 		Enclosure: newznab.RssEnclosure{
 			URL:    fi.NZBLink,
 			Length: fi.Size,

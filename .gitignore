@@ -4,3 +4,4 @@ node_modules
 .nzbs
 sqlite.db
 querier
+*.db

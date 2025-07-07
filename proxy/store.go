@@ -39,9 +39,9 @@ func nullStr(s string) sql.NullString {
 	}
 }
 
-func (s *Store) GetFeedItemIDs(ctx context.Context, ids []string) (map[string]struct{}, error) {
+func (s *Store) GetFeedItemUUIDs(ctx context.Context, ids []string) (map[string]struct{}, error) {
 
-	rows, err := s.q.GetFeedItemIDs(ctx, ids)
+	rows, err := s.q.GetFeedItemUUIDs(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -58,14 +58,12 @@ func (s *Store) InsertFeedItem(ctx context.Context, fi FeedItem) error {
 		isPerma = 1
 	}
 
-	err := s.q.InsertFeedItem(ctx, querier.InsertFeedItemParams{
-		ID:              fi.ID,
+	res, err := s.q.InsertFeedItem(ctx, querier.InsertFeedItemParams{
+		Uuid:            fi.UUID,
 		IndexerName:     fi.IndexerName,
 		Title:           fi.Title,
 		Guid:            nullStr(fi.GUID),
 		GuidIsPermalink: isPerma,
-		Comments:        nullStr(fi.Comments),
-		Description:     nullStr(fi.Description),
 		Link:            nullStr(fi.Link),
 		NzbUrl:          fi.NZBLink,
 		PubDate:         timeToString(fi.PubDate),
@@ -73,15 +71,14 @@ func (s *Store) InsertFeedItem(ctx context.Context, fi FeedItem) error {
 			Int64: fi.Size,
 			Valid: true,
 		},
-		Category: nullStr(fi.Category),
-		Source:   string(fi.Source),
+		Source: string(fi.Source),
 	})
 	if err != nil {
 		return err
 	}
 	for k, v := range fi.Attrs {
 		err = s.q.InsertFeedItemMeta(ctx, querier.InsertFeedItemMetaParams{
-			FeedItemID: fi.ID,
+			FeedItemID: res,
 			Name:       k,
 			Value:      v,
 		})
@@ -98,7 +95,7 @@ func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]FeedIte
 	if err != nil {
 		return nil, err
 	}
-	ids := lo.Map(rows, func(item querier.FeedItem, index int) string {
+	ids := lo.Map(rows, func(item querier.FeedItem, index int) int64 {
 		return item.ID
 	})
 	metas, err := s.GetFeedItemMetas(ctx, ids)
@@ -116,16 +113,13 @@ func (s *Store) SearchForFeedItem(ctx context.Context, search string) ([]FeedIte
 		pubDate, _ := timeFromString(item.PubDate)
 
 		return FeedItem{
-			ID:              item.ID,
+			UUID:            item.Uuid,
 			IndexerName:     item.IndexerName,
 			Title:           item.Title,
 			GUID:            item.Guid.String,
 			GUIDIsPermalink: guidIsPermalink,
 			Link:            item.Link.String,
-			Comments:        item.Comments.String,
 			PubDate:         pubDate,
-			Category:        item.Category.String,
-			Description:     item.Description.String,
 			NZBLink:         item.NzbUrl,
 			Size:            item.Size.Int64,
 			Attrs:           meta,
@@ -144,13 +138,13 @@ func timeFromString(s string) (time.Time, error) {
 	return time.Parse(time.RFC3339, s)
 }
 
-func (s *Store) GetFeedItemMetas(ctx context.Context, ids []string) (map[string]map[string]string, error) {
+func (s *Store) GetFeedItemMetas(ctx context.Context, ids []int64) (map[int64]map[string]string, error) {
 
 	metas, err := s.q.GetFeedItemMetas(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
-	ret := make(map[string]map[string]string)
+	ret := make(map[int64]map[string]string)
 	for _, meta := range metas {
 		existing, ok := ret[meta.FeedItemID]
 		if !ok {
@@ -218,9 +212,9 @@ func (s *Store) LoadCurrentSearchCacheEntriesForQuery(ctx context.Context, query
 	return ret, nil
 }
 
-func (s *Store) GetNZBDataByID(ctx context.Context, id string) (NZBData, error) {
+func (s *Store) GetNZBDataByUUID(ctx context.Context, id string) (NZBData, error) {
 
-	row, err := s.q.GetNZBDataByID(ctx, id)
+	row, err := s.q.GetNZBDataByUUID(ctx, id)
 	if err != nil {
 		return NZBData{}, err
 	}

@@ -76,14 +76,14 @@ func (p *Proxy) StartRSSPolls(ctx context.Context) {
 						return FeedItemFromNewznab(item, b.name, FeedItemSourceRSS)
 					})
 					ids := lo.Map(feedItems, func(item FeedItem, index int) string {
-						return item.ID
+						return item.UUID
 					})
-					existingIDs, err := p.s.GetFeedItemIDs(ctx, ids)
+					existingIDs, err := p.s.GetFeedItemUUIDs(ctx, ids)
 					if err != nil {
 						return err
 					}
 					for _, fi := range feedItems {
-						if _, ok := existingIDs[fi.ID]; ok {
+						if _, ok := existingIDs[fi.UUID]; ok {
 							continue
 						}
 						err = p.s.InsertFeedItem(ctx, fi)
@@ -256,7 +256,7 @@ func (p *Proxy) Search(ctx context.Context, params newznab.SearchParams) (*newzn
 func (p *Proxy) GetNZB(ctx context.Context, id string) (newznab.NZB, error) {
 
 	var ret newznab.NZB
-	nzbData, err := p.s.GetNZBDataByID(ctx, id)
+	nzbData, err := p.s.GetNZBDataByUUID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ret, newznab.ServerError{
